@@ -47,3 +47,9 @@ func handleJobs(w http.ResponseWriter, r *http.Request) {
     http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
   }
 }
+
+port := os.Getenv("PORT")
+if port == "" {
+  port = "8080" // default for local dev
+}
+log.Fatal(http.ListenAndServe(":" + port, nil))
