@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: jobtrack-api
+    env: go
+    plan: free
+    buildCommand: go build -o server .
+    startCommand: ./server
+    autoDeploy: true
+    healthCheckPath: /healthz
+    envVars: []
