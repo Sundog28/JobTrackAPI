@@ -1,55 +1,57 @@
 package main
 
 import (
-  "encoding/json"
-  "log"
-  "net/http"
-  "sync"
-)
-
-type Job struct {
-  ID int `json:"id"`
-  Company string `json:"company"`
-  Role string `json:"role"`
-  Status string `json:"status"`
-  Notes string `json:"notes"`
-}
-
-var (
-  jobs []Job
-  mu   sync.Mutex
-  nextID = 1
+	"encoding/json"
+	"fmt"
+	"log"
+	"net/http"
 )
 
 func main() {
-  http.HandleFunc("/jobs", handleJobs)
-  http.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request){ w.WriteHeader(http.StatusOK) })
-  log.Println("🚀 JobTrack API running on :8080")
-  log.Fatal(http.ListenAndServe(":8080", nil))
+	http.HandleFunc("/", handleHome)       // Friendly landing page
+	http.HandleFunc("/healthz", handleHealth) // Health check endpoint
+
+	// Existing backend routes (keep your /jobs CRUD etc.)
+	// Example:
+	// http.HandleFunc("/jobs", handleJobs)
+
+	fmt.Println("🚀 JobTrack API is running on port 8080")
+	log.Fatal(http.ListenAndServe(":8080", nil))
 }
 
-func handleJobs(w http.ResponseWriter, r *http.Request) {
-  w.Header().Set("Content-Type", "application/json")
-  switch r.Method {
-  case http.MethodGet:
-    json.NewEncoder(w).Encode(jobs)
-  case http.MethodPost:
-    var j Job
-    if err := json.NewDecoder(r.Body).Decode(&j); err != nil {
-      http.Error(w, err.Error(), http.StatusBadRequest); return
-    }
-    mu.Lock()
-    j.ID = nextID; nextID++
-    jobs = append(jobs, j)
-    mu.Unlock()
-    json.NewEncoder(w).Encode(j)
-  default:
-    http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-  }
+// Landing page for recruiters or visitors
+func handleHome(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/html")
+	fmt.Fprintf(w, `
+		<!DOCTYPE html>
+		<html>
+		<head>
+			<title>JobTrack API</title>
+			<style>
+				body { font-family: Arial, sans-serif; background: #0d1117; color: #c9d1d9; text-align: center; padding-top: 60px; }
+				.container { max-width: 600px; margin: auto; }
+				.code { background: #161b22; padding: 10px; border-radius: 6px; margin-top: 20px; }
+				a { color: #58a6ff; text-decoration: none; }
+			</style>
+		</head>
+		<body>
+			<div class="container">
+				<h1>🛠 JobTrack API</h1>
+				<p>Status: <strong style="color: #2ea043;">Running ✅</strong></p>
+				<p>Use <code>/healthz</code> to check API health.</p>
+				<p>Use <code>/jobs</code> (if implemented) to manage job entries.</p>
+				<br>
+				<em>Deployed via Render • Built by John Treen</em>
+			</div>
+		</body>
+		</html>
+	`)
 }
 
-port := os.Getenv("PORT")
-if port == "" {
-  port = "8080" // default for local dev
+// Health check
+func handleHealth(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{
+		"status": "ok",
+	})
 }
-log.Fatal(http.ListenAndServe(":" + port, nil))
